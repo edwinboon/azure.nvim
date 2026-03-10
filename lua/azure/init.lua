@@ -7,6 +7,10 @@ local config = {}
 
 function M.setup(opts)
 	opts = opts or {}
+	if type(opts) ~= "table" then
+		vim.notify("azure.nvim: setup() expects a table", vim.log.levels.ERROR)
+		return
+	end
 
 	local key_vault_name = opts.key_vault_name
 	if key_vault_name ~= nil and type(key_vault_name) ~= "string" then
@@ -61,7 +65,7 @@ function M.setup(opts)
 
 	vim.api.nvim_create_user_command("AzFetchAppSettings", function()
 		fetch.fetch_app_settings(config)
-	end, { desc = "Fetch Azure Function App settings" })
+	end, { force = true, desc = "Fetch Azure Function App settings" })
 end
 
 return M
