@@ -79,7 +79,7 @@ You will be prompted for the Function App name and Resource Group. The settings 
 | Option           | Type    | Default | Description                                                                        |
 | ---------------- | ------- | ------- | ---------------------------------------------------------------------------------- |
 | `decrypt`        | boolean | `false` | Attempt to decrypt `ENC(...)` values after fetching.                               |
-| `key_vault_name` | string  | `nil`   | Azure Key Vault name used for decryption. Required when settings contain `ENC(...)` values. |
+| `key_vault_name` | string  | `nil`   | Azure Key Vault name used for decryption. Required when `decrypt = true` and settings contain `ENC(...)` values. |
 | `output_path`    | string  | `nil`   | Directory to write `local.settings.json` to. Defaults to current working directory. |
 | `open_file`      | boolean | `true`  | Whether to open `local.settings.json` in the editor after saving.                  |
 | `keymaps`        | table   | `{}`    | Table of keybindings for plugin actions.                                           |

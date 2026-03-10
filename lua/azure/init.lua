@@ -9,9 +9,17 @@ function M.setup(opts)
 	opts = opts or {}
 
 	local key_vault_name = opts.key_vault_name
+	if key_vault_name ~= nil and type(key_vault_name) ~= "string" then
+		vim.notify("azure.nvim: key_vault_name must be a string", vim.log.levels.ERROR)
+		return
+	end
 	if key_vault_name == "" then key_vault_name = nil end
 
 	local output_path = opts.output_path
+	if output_path ~= nil and type(output_path) ~= "string" then
+		vim.notify("azure.nvim: output_path must be a string", vim.log.levels.ERROR)
+		return
+	end
 	if output_path == "" then output_path = nil end
 
 	config = {

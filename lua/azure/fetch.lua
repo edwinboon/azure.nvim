@@ -1,8 +1,9 @@
 local M = {}
 
--- Run an Azure CLI command and return the output, or nil on error
+-- Run an Azure CLI command and return the output, or nil on error.
+-- stderr is redirected to stdout so error messages are always captured.
 local function run_az_command(cmd)
-	local result = vim.fn.system(cmd)
+	local result = vim.fn.system(cmd .. " 2>&1")
 	if vim.v.shell_error ~= 0 then
 		return nil, result
 	end
@@ -31,30 +32,39 @@ end
 
 -- Decrypt any ENC(...) values by fetching them from Key Vault
 local function decrypt_settings(settings, vault_name)
+	if not vault_name then
+		local enc_count = 0
+		for _, setting in ipairs(settings) do
+			if type(setting.value) == "string" and setting.value:match("^ENC%(") then
+				enc_count = enc_count + 1
+			end
+		end
+		if enc_count > 0 then
+			vim.notify(
+				"Skipping decryption of " .. enc_count .. " ENC(...) value(s): key_vault_name is not configured.",
+				vim.log.levels.WARN
+			)
+		end
+		return
+	end
+
 	for _, setting in ipairs(settings) do
 		if type(setting.value) == "string" and setting.value:match("^ENC%(") then
-			if not vault_name then
+			local secret_name = resolve_secret_name(setting.name, setting.value)
+			local cmd = "az keyvault secret show --name "
+				.. vim.fn.shellescape(secret_name)
+				.. " --vault-name "
+				.. vim.fn.shellescape(vault_name)
+				.. " --query value -o tsv"
+
+			local decrypted, err = run_az_command(cmd)
+			if decrypted then
+				setting.value = vim.trim(decrypted)
+			else
 				vim.notify(
-					"Skipping decryption of '" .. setting.name .. "': key_vault_name is not configured.",
+					"Failed to decrypt '" .. setting.name .. "': " .. err,
 					vim.log.levels.WARN
 				)
-			else
-				local secret_name = resolve_secret_name(setting.name, setting.value)
-				local cmd = "az keyvault secret show --name "
-					.. vim.fn.shellescape(secret_name)
-					.. " --vault-name "
-					.. vim.fn.shellescape(vault_name)
-					.. " --query value -o tsv"
-
-				local decrypted, err = run_az_command(cmd)
-				if decrypted then
-					setting.value = vim.trim(decrypted)
-				else
-					vim.notify(
-						"Failed to decrypt '" .. setting.name .. "': " .. err,
-						vim.log.levels.WARN
-					)
-				end
 			end
 		end
 	end
@@ -76,9 +86,15 @@ end
 local function write_settings(data, output_file)
 	local json_str = vim.json.encode(data)
 
-	local file = io.open(output_file, "w")
+	local output_dir = vim.fn.fnamemodify(output_file, ":h")
+	vim.fn.mkdir(output_dir, "p")
+
+	local file, err = io.open(output_file, "w")
 	if not file then
-		vim.notify("Failed to write to " .. output_file, vim.log.levels.ERROR)
+		vim.notify(
+			"Failed to write to " .. output_file .. (err and (": " .. err) or ""),
+			vim.log.levels.ERROR
+		)
 		return false
 	end
 
@@ -120,9 +136,13 @@ function M.fetch_app_settings(config)
 	end
 
 	local settings = vim.fn.json_decode(result)
-	if not settings or #settings == 0 then
-		vim.notify("No settings found for " .. app_name .. ".", vim.log.levels.WARN)
+	if not settings then
+		vim.notify("Failed to decode settings for " .. app_name .. ".", vim.log.levels.ERROR)
 		return
+	end
+
+	if #settings == 0 then
+		vim.notify("No settings found for " .. app_name .. ". Writing empty local.settings.json.", vim.log.levels.WARN)
 	end
 
 	if config.decrypt then
@@ -131,7 +151,8 @@ function M.fetch_app_settings(config)
 
 	local local_settings = build_local_settings(settings)
 
-	local output_file = (config.output_path or vim.fn.getcwd()) .. "/local.settings.json"
+	local output_dir = vim.fn.expand(config.output_path or vim.fn.getcwd())
+	local output_file = output_dir .. "/local.settings.json"
 
 	if not write_settings(local_settings, output_file) then
 		return
