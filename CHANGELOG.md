@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-03-10
+
+### Added
+
+- Resource group dropdown via `vim.ui.select` — no more manual typing
+- Function App dropdown via `vim.ui.select` — list is filtered by the selected resource group
+- New `lua/azure/az.lua` module with shared `run_az_command()` — reusable across all features
+- New `lua/azure/select.lua` module with `resource_group()` and `function_app()` pickers
+
+### Changed
+
+- `fetch_app_settings` now uses dropdowns instead of free-text input for both resource group and function app name
+
 ## [0.3.0] - 2026-03-10
 
 ### Changed

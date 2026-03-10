@@ -35,7 +35,7 @@ Before using this plugin, make sure you have the following installed and configu
 require("lazy").setup({
     {
         "edwinboon/azure.nvim",
-        version = "v0.3.0",
+        version = "v0.4.0",
         config = function()
             require("azure").setup({
                 keymaps = {
@@ -52,7 +52,7 @@ require("lazy").setup({
 ```lua
 use {
     "edwinboon/azure.nvim",
-    tag = "v0.3.0",
+    tag = "v0.4.0",
     config = function()
         require("azure").setup({
             keymaps = {
@@ -70,7 +70,9 @@ use {
 1. **Keybinding**: Press the configured keybinding (default: `<leader>af`) in normal mode.
 2. **Command**: Run `:AzFetchAppSettings`.
 
-You will be prompted for the Function App name and Resource Group. The settings will be fetched and saved as `local.settings.json` in the current working directory (or `output_path` if configured).
+A dropdown will appear to select your Resource Group, followed by a dropdown for the Function App within that group. The settings will be fetched and saved as `local.settings.json` in the current working directory (or `output_path` if configured).
+
+> **Tip:** The dropdowns integrate automatically with UI plugins like `dressing.nvim` or `telescope-ui-select` for a richer experience.
 
 ---
 
