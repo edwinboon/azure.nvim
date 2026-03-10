@@ -15,7 +15,7 @@ local function run_az_command(args)
 	end
 
 	local parts = vim.tbl_map(vim.fn.shellescape, args)
-	local output = vim.fn.system(table.concat(parts, " "))
+	local output = vim.fn.system(table.concat(parts, " ") .. " 2>&1")
 	if vim.v.shell_error ~= 0 then
 		return nil, output
 	end
