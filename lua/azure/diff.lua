@@ -103,8 +103,8 @@ function M.show(diff_result, title, opts)
 
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
-	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = buf })
+	vim.bo[buf].modifiable = false
+	vim.bo[buf].bufhidden = "wipe"
 
 	for _, hl in ipairs(highlights) do
 		vim.api.nvim_buf_add_highlight(buf, -1, hl[2], hl[1], 0, -1)

@@ -142,8 +142,8 @@ local function do_fetch(config, app_name, resource_group)
 
 	local uv = vim.uv or vim.loop
 	if uv.fs_stat(output_file) then
-		-- Load existing file and show diff before overwriting
-		local existing_values = {}
+		-- Try to load existing file for diff
+		local existing_values = nil
 		local existing_file = io.open(output_file, "r")
 		if existing_file then
 			local content = existing_file:read("*a")
@@ -151,30 +151,48 @@ local function do_fetch(config, app_name, resource_group)
 			local ok, existing_data = pcall(vim.fn.json_decode, content)
 			if ok and existing_data and existing_data.Values then
 				existing_values = existing_data.Values
+			else
+				vim.notify(
+					"Could not parse existing local.settings.json — showing overwrite confirmation instead of diff.",
+					vim.log.levels.WARN
+				)
 			end
 		end
 
-		-- Compute from Azure perspective: what will be added/changed/removed locally
-		local d = diff.compute(local_settings.Values, existing_values)
-		local _, win = diff.show(d, "Fetch diff: " .. app_name, {
-			labels = {
-				added     = " + Will be added to local file",
-				changed   = " ~ Will be updated in local file",
-				unchanged = " = Unchanged",
-				azure_only = " - Will be removed from local file",
-			},
-		})
+		if existing_values then
+			-- Show diff against existing file
+			local d = diff.compute(local_settings.Values, existing_values)
+			local _, win = diff.show(d, "Fetch diff: " .. app_name, {
+				labels = {
+					added      = " + Will be added to local file",
+					changed    = " ~ Will be updated in local file",
+					unchanged  = " = Unchanged",
+					azure_only = " - Will be removed from local file",
+				},
+			})
 
-		vim.ui.select({ "Yes", "No" }, {
-			prompt = "Apply these changes to " .. output_file .. "?",
-		}, function(choice)
-			diff.close(win)
-			if choice == "Yes" then
-				save_and_open()
-			else
-				vim.notify("Cancelled: file not updated.", vim.log.levels.WARN)
-			end
-		end)
+			vim.ui.select({ "Yes", "No" }, {
+				prompt = "Apply these changes to " .. output_file .. "?",
+			}, function(choice)
+				diff.close(win)
+				if choice == "Yes" then
+					save_and_open()
+				else
+					vim.notify("Cancelled: file not updated.", vim.log.levels.WARN)
+				end
+			end)
+		else
+			-- Fallback: simple overwrite confirmation
+			vim.ui.select({ "Yes", "No" }, {
+				prompt = output_file .. " already exists. Overwrite?",
+			}, function(choice)
+				if choice == "Yes" then
+					save_and_open()
+				else
+					vim.notify("Cancelled: file not overwritten.", vim.log.levels.WARN)
+				end
+			end)
+		end
 	else
 		save_and_open()
 	end
