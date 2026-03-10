@@ -2,10 +2,10 @@ local M = {}
 
 -- Compute diff between two flat key→value tables.
 -- Returns { added, changed, unchanged, azure_only }
--- added      = in local, not in Azure (will be pushed)
+-- added      = in local_values, not in azure_values
 -- changed    = in both, different value
 -- unchanged  = in both, same value
--- azure_only = in Azure, not in local (left untouched on push)
+-- azure_only = in azure_values, not in local_values
 function M.compute(local_values, azure_values)
 	local result = {
 		added = {},
@@ -34,37 +34,51 @@ function M.compute(local_values, azure_values)
 end
 
 -- Show diff in a scratch buffer split.
+-- opts.labels overrides section headers for context-specific messaging.
 -- Returns buf, win so callers can close it programmatically.
-function M.show(diff_result, title)
+function M.show(diff_result, title, opts)
+	opts = opts or {}
+	local labels = opts.labels or {
+		added     = " + New (local only — will be pushed)",
+		changed   = " ~ Changed",
+		unchanged = " = Unchanged",
+		azure_only = " - Azure only (will not be changed)",
+	}
+
 	local lines = {}
-	local highlights = {} -- { line, group }
+	local highlights = {} -- { line_index, hl_group }
+
+	local function add(line, hl_group)
+		table.insert(lines, line)
+		if hl_group then
+			table.insert(highlights, { #lines - 1, hl_group })
+		end
+	end
 
 	local function section(label, keys, format_fn, hl_group)
 		if #keys == 0 then return end
 		table.sort(keys)
-		table.insert(lines, label)
-		table.insert(highlights, { #lines - 1, "Comment" })
+		add(label, "Comment")
 		for _, key in ipairs(keys) do
-			local line = format_fn(key)
-			table.insert(lines, line)
-			table.insert(highlights, { #lines - 1, hl_group })
+			for _, l in ipairs(vim.split(format_fn(key), "\n", { plain = true })) do
+				add(l, hl_group)
+			end
 		end
-		table.insert(lines, "")
+		add("")
 	end
 
-	table.insert(lines, " " .. (title or "Azure diff"))
-	table.insert(highlights, { 0, "Title" })
-	table.insert(lines, "")
+	add(" " .. (title or "Azure diff"), "Title")
+	add("")
 
 	section(
-		" + New (local only — will be pushed)",
+		labels.added,
 		vim.tbl_keys(diff_result.added),
 		function(k) return "   + " .. k .. " = " .. tostring(diff_result.added[k]) end,
 		"DiffAdd"
 	)
 
 	section(
-		" ~ Changed",
+		labels.changed,
 		vim.tbl_keys(diff_result.changed),
 		function(k)
 			local e = diff_result.changed[k]
@@ -73,47 +87,33 @@ function M.show(diff_result, title)
 		"DiffChange"
 	)
 
-	-- Flatten multiline entries
-	local flat_lines = {}
-	local flat_highlights = {}
-	local hl_idx = 1
-	for _, raw in ipairs(lines) do
-		for _, l in ipairs(vim.split(raw, "\n", { plain = true })) do
-			table.insert(flat_lines, l)
-			if hl_idx <= #highlights and highlights[hl_idx][1] == #flat_lines - 1 then
-				table.insert(flat_highlights, { #flat_lines - 1, highlights[hl_idx][2] })
-				hl_idx = hl_idx + 1
-			end
-		end
-	end
-
 	section(
-		" = Unchanged",
+		labels.unchanged,
 		vim.tbl_keys(diff_result.unchanged),
 		function(k) return "   = " .. k end,
 		"Comment"
 	)
 
 	section(
-		" - Azure only (will not be changed)",
+		labels.azure_only,
 		vim.tbl_keys(diff_result.azure_only),
 		function(k) return "   - " .. k end,
 		"DiffDelete"
 	)
 
 	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, flat_lines)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 	vim.api.nvim_set_option_value("modifiable", false, { buf = buf })
 	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = buf })
 
-	for _, hl in ipairs(flat_highlights) do
+	for _, hl in ipairs(highlights) do
 		vim.api.nvim_buf_add_highlight(buf, -1, hl[2], hl[1], 0, -1)
 	end
 
 	vim.cmd("botright split")
 	local win = vim.api.nvim_get_current_win()
 	vim.api.nvim_win_set_buf(win, buf)
-	vim.api.nvim_win_set_height(win, math.min(#flat_lines + 2, 20))
+	vim.api.nvim_win_set_height(win, math.min(#lines + 2, 20))
 
 	vim.keymap.set("n", "q", function()
 		if vim.api.nvim_win_is_valid(win) then

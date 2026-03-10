@@ -143,19 +143,27 @@ local function do_fetch(config, app_name, resource_group)
 	local uv = vim.uv or vim.loop
 	if uv.fs_stat(output_file) then
 		-- Load existing file and show diff before overwriting
-		local existing_file = io.open(output_file, "r")
 		local existing_values = {}
+		local existing_file = io.open(output_file, "r")
 		if existing_file then
 			local content = existing_file:read("*a")
 			existing_file:close()
-			local existing_data = vim.fn.json_decode(content)
-			if existing_data and existing_data.Values then
+			local ok, existing_data = pcall(vim.fn.json_decode, content)
+			if ok and existing_data and existing_data.Values then
 				existing_values = existing_data.Values
 			end
 		end
 
-		local d = diff.compute(existing_values, local_settings.Values)
-		local _, win = diff.show(d, "Fetch diff: " .. app_name)
+		-- Compute from Azure perspective: what will be added/changed/removed locally
+		local d = diff.compute(local_settings.Values, existing_values)
+		local _, win = diff.show(d, "Fetch diff: " .. app_name, {
+			labels = {
+				added     = " + Will be added to local file",
+				changed   = " ~ Will be updated in local file",
+				unchanged = " = Unchanged",
+				azure_only = " - Will be removed from local file",
+			},
+		})
 
 		vim.ui.select({ "Yes", "No" }, {
 			prompt = "Apply these changes to " .. output_file .. "?",
