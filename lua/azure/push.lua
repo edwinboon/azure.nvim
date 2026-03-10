@@ -25,8 +25,18 @@ local function load_local_settings(config)
 	file:close()
 
 	local ok, data = pcall(vim.fn.json_decode, content)
-	if not ok or not data or not data.Values then
-		vim.notify("Failed to parse local.settings.json — invalid JSON.", vim.log.levels.ERROR)
+	if not ok then
+		vim.notify(
+			"Failed to parse local.settings.json — invalid JSON:\n" .. tostring(data),
+			vim.log.levels.ERROR
+		)
+		return nil
+	end
+	if not data or not data.Values then
+		vim.notify(
+			"Failed to parse local.settings.json — missing or invalid 'Values' table.",
+			vim.log.levels.ERROR
+		)
 		return nil
 	end
 

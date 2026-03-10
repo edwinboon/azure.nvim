@@ -39,10 +39,14 @@ end
 function M.show(diff_result, title, opts)
 	opts = opts or {}
 	local labels = opts.labels or {
-		added     = " + New (local only — will be pushed)",
-		changed   = " ~ Changed",
-		unchanged = " = Unchanged",
+		added      = " + New (local only — will be pushed)",
+		changed    = " ~ Changed",
+		unchanged  = " = Unchanged",
 		azure_only = " - Azure only (will not be changed)",
+	}
+	local changed_labels = opts.changed_labels or {
+		before = "azure",
+		after  = "local",
 	}
 
 	local lines = {}
@@ -82,7 +86,9 @@ function M.show(diff_result, title, opts)
 		vim.tbl_keys(diff_result.changed),
 		function(k)
 			local e = diff_result.changed[k]
-			return "   ~ " .. k .. "\n       azure: " .. tostring(e.azure_val) .. "\n       local: " .. tostring(e.local_val)
+			return "   ~ " .. k
+				.. "\n       " .. changed_labels.before .. ": " .. tostring(e.azure_val)
+				.. "\n       " .. changed_labels.after  .. ": " .. tostring(e.local_val)
 		end,
 		"DiffChange"
 	)

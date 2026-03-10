@@ -160,6 +160,10 @@ local function do_fetch(config, app_name, resource_group)
 					unchanged  = " = Unchanged",
 					azure_only = " + Will be added to local file",
 				},
+				changed_labels = {
+					before = "existing",
+					after  = "new from Azure",
+				},
 			})
 
 			vim.ui.select({ "Yes", "No" }, {
