@@ -18,18 +18,30 @@ local function prompt(label)
 	return value
 end
 
+-- Resolve the Key Vault secret name from an ENC(...) value.
+-- If the content inside ENC(...) is a valid secret name, use it directly.
+-- Otherwise fall back to the app setting name.
+local function resolve_secret_name(setting_name, enc_value)
+	local inner = enc_value:match("^ENC%((.-)%)$")
+	if inner and inner:match("^[a-zA-Z0-9-]+$") then
+		return inner
+	end
+	return setting_name
+end
+
 -- Decrypt any ENC(...) values by fetching them from Key Vault
 local function decrypt_settings(settings, vault_name)
 	for _, setting in ipairs(settings) do
-		if setting.value:match("^ENC%(") then
+		if type(setting.value) == "string" and setting.value:match("^ENC%(") then
 			if not vault_name then
 				vim.notify(
 					"Skipping decryption of '" .. setting.name .. "': key_vault_name is not configured.",
 					vim.log.levels.WARN
 				)
 			else
+				local secret_name = resolve_secret_name(setting.name, setting.value)
 				local cmd = "az keyvault secret show --name "
-					.. vim.fn.shellescape(setting.name)
+					.. vim.fn.shellescape(secret_name)
 					.. " --vault-name "
 					.. vim.fn.shellescape(vault_name)
 					.. " --query value -o tsv"
@@ -60,7 +72,7 @@ local function build_local_settings(settings)
 	return output
 end
 
--- Write the settings table to a file as formatted JSON
+-- Write the settings table to a file as JSON
 local function write_settings(data, output_file)
 	local json_str = vim.json.encode(data)
 
