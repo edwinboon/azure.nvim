@@ -4,42 +4,42 @@ A Neovim plugin to fetch and optionally decrypt Azure Function App settings dire
 
 ## Features
 
-- Fetch settings from an Azure Function App.
-- Optionally decrypt the settings after fetching.
+- Fetch settings from an Azure Function App and save them as `local.settings.json`.
+- Optionally decrypt `ENC(...)` values using Azure Key Vault.
 - Dynamic resource group handling for each fetch operation.
 - Configurable keybindings and commands.
+- Configurable output path and file-open behavior.
 
 ---
 
 ## Prerequisites
 
-Before using this plugin, make sure you have the following tools installed and configured:
+Before using this plugin, make sure you have the following installed and configured:
 
 1. **[Azure CLI](https://learn.microsoft.com/en-us/cli/azure/):**
    - Required for fetching and decrypting Azure Function App settings.
-   - Ensure you are logged in using `az login`:
+   - Ensure you are logged in:
      ```bash
      az login
      ```
 
+2. **Neovim 0.7+**
+
 ---
 
 ## Installation
-
-You can install `azure.nvim` using your favorite plugin manager. Here's how:
 
 ### Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 require("lazy").setup({
     {
-        "edwinboon/azure.nvim", -- Replace with your GitHub repository URL
-        version = "v0.1.0", -- Pin to a specific version
+        "edwinboon/azure.nvim",
+        version = "v0.2.0",
         config = function()
             require("azure").setup({
-                decrypt = true, -- Enable decryption
                 keymaps = {
-                    fetch_app_settings = "<leader>af", -- Custom keybinding for fetching app settings
+                    fetch_app_settings = "<leader>af",
                 },
             })
         end,
@@ -51,13 +51,12 @@ require("lazy").setup({
 
 ```lua
 use {
-    "edwinboon/azure.nvim", -- Replace with your GitHub repository URL
-    tag = "v0.1.0", -- Pin to a specific version
+    "edwinboon/azure.nvim",
+    tag = "v0.2.0",
     config = function()
         require("azure").setup({
-            decrypt = true, -- Enable decryption
             keymaps = {
-                fetch_app_settings = "<leader>af", -- Custom keybinding for fetching app settings
+                fetch_app_settings = "<leader>af",
             },
         })
     end,
@@ -68,50 +67,99 @@ use {
 
 ## Usage
 
-1. **Keybinding**:
+1. **Keybinding**: Press the configured keybinding (default: `<leader>af`) in normal mode.
+2. **Command**: Run `:AzFetchAppSettings`.
 
-   - Press the configured keybinding (default: `<leader>af`) in normal mode.
-   - Enter the name of the Azure Function App when prompted.
-   - Enter the name of the Azure Resource Group when prompted.
-   - The settings will be fetched, and optionally decrypted if `decrypt` is enabled.
-
-2. **Command**:
-   - Alternatively, you can use the command `:AzFetchAppSettings` to fetch the settings.
-   - This is useful if you prefer not to use keybindings.
+You will be prompted for the Function App name and Resource Group. The settings will be fetched and saved as `local.settings.json` in the current working directory (or `output_path` if configured).
 
 ---
 
 ## Configuration Options
 
-| Option    | Type    | Default | Description                                       |
-| --------- | ------- | ------- | ------------------------------------------------- |
-| `decrypt` | boolean | `false` | Whether to decrypt settings after fetching.       |
-| `keymaps` | table   | `{}`    | Table of keybindings for specific plugin actions. |
+| Option           | Type    | Default | Description                                                                        |
+| ---------------- | ------- | ------- | ---------------------------------------------------------------------------------- |
+| `decrypt`        | boolean | `false` | Attempt to decrypt `ENC(...)` values after fetching.                               |
+| `key_vault_name` | string  | `nil`   | Azure Key Vault name used for decryption. Required when `decrypt = true` and settings contain `ENC(...)` values. |
+| `output_path`    | string  | `nil`   | Directory to write `local.settings.json` to. Defaults to current working directory. |
+| `open_file`      | boolean | `true`  | Whether to open `local.settings.json` in the editor after saving.                  |
+| `keymaps`        | table   | `{}`    | Table of keybindings for plugin actions.                                           |
 
 ### Keymaps Table
 
-The `keymaps` table allows you to define custom keybindings for specific plugin functions:
+| Key                  | Default       | Description                                        |
+| -------------------- | ------------- | -------------------------------------------------- |
+| `fetch_app_settings` | `<leader>af`  | Fetch and optionally decrypt Function App settings. |
 
-| Key                  | Description                                              |
-| -------------------- | -------------------------------------------------------- |
-| `fetch_app_settings` | Keybinding to fetch and optionally decrypt app settings. |
+---
+
+## Decryption
+
+When `decrypt = true`, the plugin will look for settings whose value starts with `ENC(...)` and attempt to retrieve the plaintext value from Azure Key Vault.
+
+The secret name is resolved as follows:
+- If the content inside `ENC(...)` is a valid Key Vault secret name (letters, numbers, hyphens), that name is used.
+- Otherwise, the app setting name is used as the secret name.
+
+**Examples:**
+
+| App setting value       | Secret name used in Key Vault |
+| ----------------------- | ----------------------------- |
+| `ENC(my-secret-name)`   | `my-secret-name`              |
+| `ENC(<encrypted-blob>)` | the app setting name          |
+
+**Example configuration with decryption:**
+
+```lua
+require("azure").setup({
+    decrypt = true,
+    key_vault_name = "my-keyvault",
+    keymaps = {
+        fetch_app_settings = "<leader>af",
+    },
+})
+```
 
 ---
 
 ## Example Configuration
 
-Here's a sample configuration for your `init.lua`:
+Minimal setup:
 
 ```lua
 require("azure").setup({
-    decrypt = true, -- Enable decryption after fetching
     keymaps = {
-        fetch_app_settings = "<leader>af", -- Set a custom keybinding for fetching app settings
+        fetch_app_settings = "<leader>af",
     },
 })
 ```
 
-If you prefer using commands, you can skip the `keymaps` option and use `:AzFetchAppSettings` instead.
+Full configuration:
+
+```lua
+require("azure").setup({
+    decrypt = true,
+    key_vault_name = "my-keyvault",
+    output_path = "/path/to/project",
+    open_file = true,
+    keymaps = {
+        fetch_app_settings = "<leader>af",
+    },
+})
+```
+
+If you prefer commands over keybindings, skip the `keymaps` option and use `:AzFetchAppSettings` instead.
+
+---
+
+## Troubleshooting
+
+**Error fetching settings**
+- Make sure you are logged in with `az login`.
+- Verify the Function App name and Resource Group are correct.
+
+**Decryption fails**
+- Make sure `key_vault_name` is set in your config.
+- Ensure you have read access to the Key Vault secrets.
 
 ---
 
