@@ -179,14 +179,22 @@ function M.fetch_app_settings(config)
 	config = config or {}
 
 	vim.ui.input({ prompt = "Azure Function App name: " }, function(app_name)
-		if not app_name or app_name == "" then
-			vim.notify("Cancelled: app name is required.", vim.log.levels.WARN)
+		if app_name == nil then
+			vim.notify("Cancelled.", vim.log.levels.WARN)
+			return
+		end
+		if app_name == "" then
+			vim.notify("App name is required.", vim.log.levels.WARN)
 			return
 		end
 
 		vim.ui.input({ prompt = "Azure Resource Group: " }, function(resource_group)
-			if not resource_group or resource_group == "" then
-				vim.notify("Cancelled: resource group is required.", vim.log.levels.WARN)
+			if resource_group == nil then
+				vim.notify("Cancelled.", vim.log.levels.WARN)
+				return
+			end
+			if resource_group == "" then
+				vim.notify("Resource group is required.", vim.log.levels.WARN)
 				return
 			end
 
