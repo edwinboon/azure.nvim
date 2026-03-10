@@ -160,14 +160,14 @@ local function do_fetch(config, app_name, resource_group)
 		end
 
 		if existing_values then
-			-- Show diff against existing file
-			local d = diff.compute(local_settings.Values, existing_values)
+			-- compute(existing, azure): local_val = existing, azure_val = new from Azure
+			local d = diff.compute(existing_values, local_settings.Values)
 			local _, win = diff.show(d, "Fetch diff: " .. app_name, {
 				labels = {
-					added      = " + Will be added to local file",
+					added      = " - Will be removed from local file",
 					changed    = " ~ Will be updated in local file",
 					unchanged  = " = Unchanged",
-					azure_only = " - Will be removed from local file",
+					azure_only = " + Will be added to local file",
 				},
 			})
 

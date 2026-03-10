@@ -52,9 +52,9 @@ local function fetch_azure_values(app_name, resource_group)
 		return nil
 	end
 
-	local settings = vim.fn.json_decode(result)
-	if not settings then
-		vim.notify("Failed to decode Azure settings.", vim.log.levels.ERROR)
+	local ok, settings = pcall(vim.fn.json_decode, result)
+	if not ok or not settings then
+		vim.notify("Failed to decode Azure settings — az did not return valid JSON.", vim.log.levels.ERROR)
 		return nil
 	end
 
