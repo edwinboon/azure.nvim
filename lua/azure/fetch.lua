@@ -1,11 +1,12 @@
 local M = {}
 
 -- Run an Azure CLI command and return the output, or nil on error.
+-- Accepts an argv table so arguments are never split or shell-interpreted.
 -- Uses vim.system() (Neovim 0.9+) to keep stdout and stderr separate.
 -- Falls back to vim.fn.system() for older Neovim versions.
-local function run_az_command(cmd)
+local function run_az_command(args)
 	if vim.system then
-		local proc = vim.system(vim.split(cmd, " "), { text = true }):wait()
+		local proc = vim.system(args, { text = true }):wait()
 		if proc.code ~= 0 then
 			local err = (proc.stderr ~= "" and proc.stderr) or proc.stdout
 			return nil, err
@@ -13,7 +14,8 @@ local function run_az_command(cmd)
 		return proc.stdout, nil
 	end
 
-	local output = vim.fn.system(cmd)
+	local parts = vim.tbl_map(vim.fn.shellescape, args)
+	local output = vim.fn.system(table.concat(parts, " "))
 	if vim.v.shell_error ~= 0 then
 		return nil, output
 	end
@@ -61,13 +63,15 @@ local function decrypt_settings(settings, vault_name)
 	for _, setting in ipairs(settings) do
 		if type(setting.value) == "string" and setting.value:match("^ENC%(") then
 			local secret_name = resolve_secret_name(setting.name, setting.value)
-			local cmd = "az keyvault secret show --name "
-				.. vim.fn.shellescape(secret_name)
-				.. " --vault-name "
-				.. vim.fn.shellescape(vault_name)
-				.. " --query value -o tsv"
+			local args = {
+				"az", "keyvault", "secret", "show",
+				"--name", secret_name,
+				"--vault-name", vault_name,
+				"--query", "value",
+				"-o", "tsv",
+			}
 
-			local decrypted, err = run_az_command(cmd)
+			local decrypted, err = run_az_command(args)
 			if decrypted then
 				setting.value = vim.trim(decrypted)
 			else
@@ -131,12 +135,15 @@ function M.fetch_app_settings(config)
 
 	vim.notify("Fetching settings for " .. app_name .. "...", vim.log.levels.INFO)
 
-	local cmd = "az functionapp config appsettings list"
-		.. " --name " .. vim.fn.shellescape(app_name)
-		.. " --resource-group " .. vim.fn.shellescape(resource_group)
-		.. " --query '[].{name:name, value:value}' -o json"
+	local args = {
+		"az", "functionapp", "config", "appsettings", "list",
+		"--name", app_name,
+		"--resource-group", resource_group,
+		"--query", "[].{name:name, value:value}",
+		"-o", "json",
+	}
 
-	local result, err = run_az_command(cmd)
+	local result, err = run_az_command(args)
 	if not result then
 		vim.notify(
 			"Error fetching settings:\n" .. err .. "\nTip: make sure you are logged in with `az login`.",

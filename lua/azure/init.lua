@@ -22,6 +22,16 @@ function M.setup(opts)
 	end
 	if output_path == "" then output_path = nil end
 
+	if opts.decrypt ~= nil and type(opts.decrypt) ~= "boolean" then
+		vim.notify("azure.nvim: decrypt must be a boolean", vim.log.levels.ERROR)
+		return
+	end
+
+	if opts.open_file ~= nil and type(opts.open_file) ~= "boolean" then
+		vim.notify("azure.nvim: open_file must be a boolean", vim.log.levels.ERROR)
+		return
+	end
+
 	config = {
 		decrypt = opts.decrypt or false,
 		key_vault_name = key_vault_name,
