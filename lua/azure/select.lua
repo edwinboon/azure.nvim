@@ -3,7 +3,7 @@ local M = {}
 local run_az_command = require("azure.az").run_az_command
 
 -- Show a vim.ui.select picker for Azure resource groups.
--- Calls callback(resource_group) on selection, or callback(nil) on cancel.
+-- Calls callback(resource_group) on selection. Does not call callback on cancel or error.
 function M.resource_group(callback)
 	vim.notify("Loading resource groups...", vim.log.levels.INFO)
 
@@ -35,7 +35,7 @@ function M.resource_group(callback)
 end
 
 -- Show a vim.ui.select picker for Function Apps in the given resource group.
--- Calls callback(app_name) on selection, or callback(nil) on cancel.
+-- Calls callback(app_name) on selection. Does not call callback on cancel or error.
 function M.function_app(resource_group, callback)
 	vim.notify("Loading function apps...", vim.log.levels.INFO)
 
