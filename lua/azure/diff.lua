@@ -48,6 +48,7 @@ function M.show(diff_result, title, opts)
 		before = "azure",
 		after  = "local",
 	}
+	local swap = opts.swap or false
 
 	local lines = {}
 	local highlights = {} -- { line_index, hl_group }
@@ -78,7 +79,7 @@ function M.show(diff_result, title, opts)
 		labels.added,
 		vim.tbl_keys(diff_result.added),
 		function(k) return "   + " .. k .. " = " .. tostring(diff_result.added[k]) end,
-		"DiffAdd"
+		swap and "DiffDelete" or "DiffAdd"
 	)
 
 	section(
@@ -86,9 +87,11 @@ function M.show(diff_result, title, opts)
 		vim.tbl_keys(diff_result.changed),
 		function(k)
 			local e = diff_result.changed[k]
+			local before_val = swap and e.local_val or e.azure_val
+			local after_val  = swap and e.azure_val or e.local_val
 			return "   ~ " .. k
-				.. "\n       " .. changed_labels.before .. ": " .. tostring(e.azure_val)
-				.. "\n       " .. changed_labels.after  .. ": " .. tostring(e.local_val)
+				.. "\n       " .. changed_labels.before .. ": " .. tostring(before_val)
+				.. "\n       " .. changed_labels.after  .. ": " .. tostring(after_val)
 		end,
 		"DiffChange"
 	)
@@ -104,7 +107,7 @@ function M.show(diff_result, title, opts)
 		labels.azure_only,
 		vim.tbl_keys(diff_result.azure_only),
 		function(k) return "   - " .. k end,
-		"DiffDelete"
+		swap and "DiffAdd" or "DiffDelete"
 	)
 
 	local buf = vim.api.nvim_create_buf(false, true)

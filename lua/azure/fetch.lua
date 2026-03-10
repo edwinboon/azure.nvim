@@ -151,7 +151,10 @@ local function do_fetch(config, app_name, resource_group)
 		end
 
 		if existing_values then
-			-- compute(existing, azure): local_val = existing, azure_val = new from Azure
+			-- compute(existing, new_azure): local_val = existing file, azure_val = new from Azure
+			-- added      = in existing file, not in new Azure → will be removed from local
+			-- azure_only = in new Azure, not in existing file  → will be added to local
+			-- swap = true: show existing (local_val) as "before", new Azure (azure_val) as "after"
 			local d = diff.compute(existing_values, local_settings.Values)
 			local _, win = diff.show(d, "Fetch diff: " .. app_name, {
 				labels = {
@@ -164,6 +167,7 @@ local function do_fetch(config, app_name, resource_group)
 					before = "existing",
 					after  = "new from Azure",
 				},
+				swap = true,
 			})
 
 			vim.ui.select({ "Yes", "No" }, {
