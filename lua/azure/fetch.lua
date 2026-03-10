@@ -158,7 +158,8 @@ local function do_fetch(config, app_name, resource_group)
 		end
 	end
 
-	if vim.uv.fs_stat(output_file) then
+	local uv = vim.uv or vim.loop
+	if uv.fs_stat(output_file) then
 		vim.ui.select({ "Yes", "No" }, {
 			prompt = output_file .. " already exists. Overwrite?",
 		}, function(choice)
