@@ -1,26 +1,7 @@
 local M = {}
 
--- Run an Azure CLI command and return the output, or nil on error.
--- Accepts an argv table so arguments are never split or shell-interpreted.
--- Uses vim.system() (Neovim 0.9+) to keep stdout and stderr separate.
--- Falls back to vim.fn.system() for older Neovim versions.
-local function run_az_command(args)
-	if vim.system then
-		local proc = vim.system(args, { text = true }):wait()
-		if proc.code ~= 0 then
-			local err = (proc.stderr ~= "" and proc.stderr) or proc.stdout
-			return nil, err
-		end
-		return proc.stdout, nil
-	end
-
-	local parts = vim.tbl_map(vim.fn.shellescape, args)
-	local output = vim.fn.system(table.concat(parts, " ") .. " 2>&1")
-	if vim.v.shell_error ~= 0 then
-		return nil, output
-	end
-	return output, nil
-end
+local az = require("azure.az")
+local select = require("azure.select")
 
 -- Resolve the Key Vault secret name from an ENC(...) value.
 -- If the content inside ENC(...) is a valid secret name, use it directly.
@@ -62,7 +43,7 @@ local function decrypt_settings(settings, vault_name)
 				"-o", "tsv",
 			}
 
-			local decrypted, err = run_az_command(args)
+			local decrypted, err = az.run_az_command(args)
 			if decrypted then
 				setting.value = vim.trim(decrypted)
 			else
@@ -120,7 +101,7 @@ local function do_fetch(config, app_name, resource_group)
 		"-o", "json",
 	}
 
-	local result, err = run_az_command(args)
+	local result, err = az.run_az_command(args)
 	if not result then
 		vim.notify(
 			"Error fetching settings:\n" .. err .. "\nTip: make sure you are logged in with `az login`.",
@@ -174,30 +155,12 @@ local function do_fetch(config, app_name, resource_group)
 	end
 end
 
--- Main entry point: prompt for inputs then fetch app settings
+-- Main entry point: select resource group and function app, then fetch settings
 function M.fetch_app_settings(config)
 	config = config or {}
 
-	vim.ui.input({ prompt = "Azure Function App name: " }, function(app_name)
-		if app_name == nil then
-			vim.notify("Cancelled.", vim.log.levels.WARN)
-			return
-		end
-		if app_name == "" then
-			vim.notify("App name is required.", vim.log.levels.WARN)
-			return
-		end
-
-		vim.ui.input({ prompt = "Azure Resource Group: " }, function(resource_group)
-			if resource_group == nil then
-				vim.notify("Cancelled.", vim.log.levels.WARN)
-				return
-			end
-			if resource_group == "" then
-				vim.notify("Resource group is required.", vim.log.levels.WARN)
-				return
-			end
-
+	select.resource_group(function(resource_group)
+		select.function_app(resource_group, function(app_name)
 			do_fetch(config, app_name, resource_group)
 		end)
 	end)
