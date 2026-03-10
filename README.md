@@ -35,7 +35,7 @@ Before using this plugin, make sure you have the following installed and configu
 require("lazy").setup({
     {
         "edwinboon/azure.nvim",
-        version = "v0.2.0",
+        version = "v0.3.0",
         config = function()
             require("azure").setup({
                 keymaps = {
@@ -52,7 +52,7 @@ require("lazy").setup({
 ```lua
 use {
     "edwinboon/azure.nvim",
-    tag = "v0.2.0",
+    tag = "v0.3.0",
     config = function()
         require("azure").setup({
             keymaps = {
