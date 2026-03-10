@@ -94,27 +94,13 @@ end
 local function do_fetch(config, app_name, resource_group)
 	vim.notify("Fetching settings for " .. app_name .. "...", vim.log.levels.INFO)
 
-	local args = {
-		"az", "functionapp", "config", "appsettings", "list",
-		"--name", app_name,
-		"--resource-group", resource_group,
-		"--query", "[].{name:name, value:value}",
-		"-o", "json",
-	}
+	local azure_values = az.fetch_app_settings(app_name, resource_group)
+	if not azure_values then return end
 
-	local result, err = az.run_az_command(args)
-	if not result then
-		vim.notify(
-			"Error fetching settings:\n" .. err .. "\nTip: make sure you are logged in with `az login`.",
-			vim.log.levels.ERROR
-		)
-		return
-	end
-
-	local settings = vim.fn.json_decode(result)
-	if not settings then
-		vim.notify("Failed to decode settings for " .. app_name .. ".", vim.log.levels.ERROR)
-		return
+	-- Convert flat key→value table back to list format for decrypt_settings
+	local settings = {}
+	for k, v in pairs(azure_values) do
+		table.insert(settings, { name = k, value = v })
 	end
 
 	if #settings == 0 then
@@ -144,8 +130,13 @@ local function do_fetch(config, app_name, resource_group)
 	if uv.fs_stat(output_file) then
 		-- Try to load existing file for diff
 		local existing_values = nil
-		local existing_file = io.open(output_file, "r")
-		if existing_file then
+		local existing_file, open_err = io.open(output_file, "r")
+		if not existing_file then
+			vim.notify(
+				"Could not read existing local.settings.json" .. (open_err and (": " .. open_err) or "") .. " — showing overwrite confirmation instead of diff.",
+				vim.log.levels.WARN
+			)
+		else
 			local content = existing_file:read("*a")
 			existing_file:close()
 			local ok, existing_data = pcall(vim.fn.json_decode, content)
@@ -153,7 +144,7 @@ local function do_fetch(config, app_name, resource_group)
 				existing_values = existing_data.Values
 			else
 				vim.notify(
-					"Could not parse existing local.settings.json — showing overwrite confirmation instead of diff.",
+					"Could not parse existing local.settings.json" .. (not ok and (": " .. tostring(existing_data)) or "") .. " — showing overwrite confirmation instead of diff.",
 					vim.log.levels.WARN
 				)
 			end

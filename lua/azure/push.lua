@@ -33,37 +33,6 @@ local function load_local_settings(config)
 	return data.Values
 end
 
--- Fetch current Azure settings as a flat key→value table
-local function fetch_azure_values(app_name, resource_group)
-	local args = {
-		"az", "functionapp", "config", "appsettings", "list",
-		"--name", app_name,
-		"--resource-group", resource_group,
-		"--query", "[].{name:name, value:value}",
-		"-o", "json",
-	}
-
-	local result, err = az.run_az_command(args)
-	if not result then
-		vim.notify(
-			"Failed to fetch Azure settings:\n" .. err .. "\nTip: make sure you are logged in with `az login`.",
-			vim.log.levels.ERROR
-		)
-		return nil
-	end
-
-	local ok, settings = pcall(vim.fn.json_decode, result)
-	if not ok or not settings then
-		vim.notify("Failed to decode Azure settings — az did not return valid JSON.", vim.log.levels.ERROR)
-		return nil
-	end
-
-	local values = {}
-	for _, s in ipairs(settings) do
-		values[s.name] = s.value
-	end
-	return values
-end
 
 -- Perform the actual push after inputs have been collected
 local function do_push(config, app_name, resource_group)
@@ -72,7 +41,7 @@ local function do_push(config, app_name, resource_group)
 
 	vim.notify("Fetching current Azure settings for " .. app_name .. "...", vim.log.levels.INFO)
 
-	local azure_values = fetch_azure_values(app_name, resource_group)
+	local azure_values = az.fetch_app_settings(app_name, resource_group)
 	if not azure_values then return end
 
 	local d = diff.compute(local_values, azure_values)
