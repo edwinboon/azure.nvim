@@ -22,20 +22,27 @@ end
 local function decrypt_settings(settings, vault_name)
 	for _, setting in ipairs(settings) do
 		if setting.value:match("^ENC%(") then
-			local cmd = "az keyvault secret show --name "
-				.. vim.fn.shellescape(setting.name)
-				.. " --vault-name "
-				.. vim.fn.shellescape(vault_name)
-				.. " --query value -o tsv"
-
-			local decrypted, err = run_az_command(cmd)
-			if decrypted then
-				setting.value = vim.trim(decrypted)
-			else
+			if not vault_name then
 				vim.notify(
-					"Failed to decrypt '" .. setting.name .. "': " .. err,
+					"Skipping decryption of '" .. setting.name .. "': key_vault_name is not configured.",
 					vim.log.levels.WARN
 				)
+			else
+				local cmd = "az keyvault secret show --name "
+					.. vim.fn.shellescape(setting.name)
+					.. " --vault-name "
+					.. vim.fn.shellescape(vault_name)
+					.. " --query value -o tsv"
+
+				local decrypted, err = run_az_command(cmd)
+				if decrypted then
+					setting.value = vim.trim(decrypted)
+				else
+					vim.notify(
+						"Failed to decrypt '" .. setting.name .. "': " .. err,
+						vim.log.levels.WARN
+					)
+				end
 			end
 		end
 	end
@@ -107,13 +114,6 @@ function M.fetch_app_settings(config)
 	end
 
 	if config.decrypt then
-		if not config.key_vault_name then
-			vim.notify(
-				"Decryption enabled but 'key_vault_name' is not set in config.",
-				vim.log.levels.ERROR
-			)
-			return
-		end
 		decrypt_settings(settings, config.key_vault_name)
 	end
 

@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `key_vault_name` config option (required when `decrypt = true`)
+- `key_vault_name` config option (optional, used when `decrypt = true`)
 - `output_path` config option to set a custom output directory
 - `open_file` config option to control whether the file opens after saving (default: `true`)
 - Helpful error tip when Azure CLI fails: suggests running `az login`

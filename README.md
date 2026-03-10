@@ -83,10 +83,13 @@ use {
 
 ## Configuration Options
 
-| Option    | Type    | Default | Description                                       |
-| --------- | ------- | ------- | ------------------------------------------------- |
-| `decrypt` | boolean | `false` | Whether to decrypt settings after fetching.       |
-| `keymaps` | table   | `{}`    | Table of keybindings for specific plugin actions. |
+| Option            | Type    | Default | Description                                                                 |
+| ----------------- | ------- | ------- | --------------------------------------------------------------------------- |
+| `decrypt`         | boolean | `false` | Whether to decrypt `ENC(...)` values after fetching.                        |
+| `key_vault_name`  | string  | `nil`   | Azure Key Vault name used for decryption (optional, only used with `decrypt = true`). |
+| `output_path`     | string  | `nil`   | Directory to write `local.settings.json` to. Defaults to current working directory. |
+| `open_file`       | boolean | `true`  | Whether to open `local.settings.json` in the editor after saving.           |
+| `keymaps`         | table   | `{}`    | Table of keybindings for specific plugin actions.                           |
 
 ### Keymaps Table
 
