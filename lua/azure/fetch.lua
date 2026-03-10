@@ -2,6 +2,7 @@ local M = {}
 
 local az = require("azure.az")
 local select = require("azure.select")
+local diff = require("azure.diff")
 
 -- Resolve the Key Vault secret name from an ENC(...) value.
 -- If the content inside ENC(...) is a valid secret name, use it directly.
@@ -141,13 +142,29 @@ local function do_fetch(config, app_name, resource_group)
 
 	local uv = vim.uv or vim.loop
 	if uv.fs_stat(output_file) then
+		-- Load existing file and show diff before overwriting
+		local existing_file = io.open(output_file, "r")
+		local existing_values = {}
+		if existing_file then
+			local content = existing_file:read("*a")
+			existing_file:close()
+			local existing_data = vim.fn.json_decode(content)
+			if existing_data and existing_data.Values then
+				existing_values = existing_data.Values
+			end
+		end
+
+		local d = diff.compute(existing_values, local_settings.Values)
+		local _, win = diff.show(d, "Fetch diff: " .. app_name)
+
 		vim.ui.select({ "Yes", "No" }, {
-			prompt = output_file .. " already exists. Overwrite?",
+			prompt = "Apply these changes to " .. output_file .. "?",
 		}, function(choice)
+			diff.close(win)
 			if choice == "Yes" then
 				save_and_open()
 			else
-				vim.notify("Cancelled: file not overwritten.", vim.log.levels.WARN)
+				vim.notify("Cancelled: file not updated.", vim.log.levels.WARN)
 			end
 		end)
 	else
