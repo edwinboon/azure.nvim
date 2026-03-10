@@ -22,15 +22,6 @@ local function run_az_command(args)
 	return output, nil
 end
 
--- Prompt the user for input, returns nil if cancelled or empty
-local function prompt(label)
-	local value = vim.fn.input(label)
-	if value == "" then
-		return nil
-	end
-	return value
-end
-
 -- Resolve the Key Vault secret name from an ENC(...) value.
 -- If the content inside ENC(...) is a valid secret name, use it directly.
 -- Otherwise fall back to the app setting name.
@@ -117,22 +108,8 @@ local function write_settings(data, output_file)
 	return true
 end
 
--- Main entry point: fetch app settings and save to local.settings.json
-function M.fetch_app_settings(config)
-	config = config or {}
-
-	local app_name = prompt("Azure Function App name: ")
-	if not app_name then
-		vim.notify("Cancelled: app name is required.", vim.log.levels.WARN)
-		return
-	end
-
-	local resource_group = prompt("Azure Resource Group: ")
-	if not resource_group then
-		vim.notify("Cancelled: resource group is required.", vim.log.levels.WARN)
-		return
-	end
-
+-- Perform the actual fetch after inputs have been collected
+local function do_fetch(config, app_name, resource_group)
 	vim.notify("Fetching settings for " .. app_name .. "...", vim.log.levels.INFO)
 
 	local args = {
@@ -171,15 +148,59 @@ function M.fetch_app_settings(config)
 	local output_dir = vim.fn.expand(config.output_path or vim.fn.getcwd())
 	local output_file = output_dir .. "/local.settings.json"
 
-	if not write_settings(local_settings, output_file) then
-		return
+	local function save_and_open()
+		if not write_settings(local_settings, output_file) then
+			return
+		end
+		vim.notify("Settings saved to " .. output_file, vim.log.levels.INFO)
+		if config.open_file ~= false then
+			vim.cmd("edit " .. vim.fn.fnameescape(output_file))
+		end
 	end
 
-	vim.notify("Settings saved to " .. output_file, vim.log.levels.INFO)
-
-	if config.open_file ~= false then
-		vim.cmd("edit " .. vim.fn.fnameescape(output_file))
+	local uv = vim.uv or vim.loop
+	if uv.fs_stat(output_file) then
+		vim.ui.select({ "Yes", "No" }, {
+			prompt = output_file .. " already exists. Overwrite?",
+		}, function(choice)
+			if choice == "Yes" then
+				save_and_open()
+			else
+				vim.notify("Cancelled: file not overwritten.", vim.log.levels.WARN)
+			end
+		end)
+	else
+		save_and_open()
 	end
+end
+
+-- Main entry point: prompt for inputs then fetch app settings
+function M.fetch_app_settings(config)
+	config = config or {}
+
+	vim.ui.input({ prompt = "Azure Function App name: " }, function(app_name)
+		if app_name == nil then
+			vim.notify("Cancelled.", vim.log.levels.WARN)
+			return
+		end
+		if app_name == "" then
+			vim.notify("App name is required.", vim.log.levels.WARN)
+			return
+		end
+
+		vim.ui.input({ prompt = "Azure Resource Group: " }, function(resource_group)
+			if resource_group == nil then
+				vim.notify("Cancelled.", vim.log.levels.WARN)
+				return
+			end
+			if resource_group == "" then
+				vim.notify("Resource group is required.", vim.log.levels.WARN)
+				return
+			end
+
+			do_fetch(config, app_name, resource_group)
+		end)
+	end)
 end
 
 return M
