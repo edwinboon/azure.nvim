@@ -1,31 +1,30 @@
 local M = {}
 
--- Import the fetch module
 local fetch = require("azure.fetch")
 
--- Setup function for the plugin
+-- Holds the resolved config after setup() is called
+local config = {}
+
 function M.setup(opts)
 	opts = opts or {}
-	local decrypt = opts.decrypt or false
+
+	config = {
+		decrypt = opts.decrypt or false,
+		key_vault_name = opts.key_vault_name or nil,
+		output_path = opts.output_path or nil,
+		open_file = opts.open_file ~= false, -- default true
+	}
+
 	local keymaps = opts.keymaps or {}
+	local fetch_key = keymaps.fetch_app_settings or "<leader>af"
 
-	-- Default keybinding for fetching app settings
-	keymaps.fetch_app_settings = keymaps.fetch_app_settings or "<leader>af"
+	vim.keymap.set("n", fetch_key, function()
+		fetch.fetch_app_settings(config)
+	end, { noremap = true, silent = true, desc = "Azure: fetch Function App settings" })
 
-	-- Set up the keybinding for fetching app settings
-	if keymaps.fetch_app_settings then
-		vim.api.nvim_set_keymap(
-			"n",
-			keymaps.fetch_app_settings,
-			":lua require('azure.fetch').fetch_app_settings(" .. tostring(decrypt) .. ")<CR>",
-			{ noremap = true, silent = true }
-		)
-	end
-
-	-- Register the command for fetching app settings
 	vim.api.nvim_create_user_command("AzFetchAppSettings", function()
-		fetch.fetch_app_settings(decrypt)
-	end, {})
+		fetch.fetch_app_settings(config)
+	end, { desc = "Fetch Azure Function App settings" })
 end
 
 return M

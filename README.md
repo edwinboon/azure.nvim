@@ -33,8 +33,8 @@ You can install `azure.nvim` using your favorite plugin manager. Here's how:
 ```lua
 require("lazy").setup({
     {
-        "edwinboon/azure.nvim", -- Replace with your GitHub repository URL
-        version = "v0.1.0", -- Pin to a specific version
+        "edwinboon/azure.nvim",
+        version = "v0.2.0", -- Pin to a specific version
         config = function()
             require("azure").setup({
                 decrypt = true, -- Enable decryption
@@ -51,8 +51,8 @@ require("lazy").setup({
 
 ```lua
 use {
-    "edwinboon/azure.nvim", -- Replace with your GitHub repository URL
-    tag = "v0.1.0", -- Pin to a specific version
+    "edwinboon/azure.nvim",
+    tag = "v0.2.0", -- Pin to a specific version
     config = function()
         require("azure").setup({
             decrypt = true, -- Enable decryption
