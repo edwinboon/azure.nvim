@@ -1,13 +1,23 @@
 local M = {}
 
 -- Run an Azure CLI command and return the output, or nil on error.
--- stderr is redirected to stdout so error messages are always captured.
+-- Uses vim.system() (Neovim 0.9+) to keep stdout and stderr separate.
+-- Falls back to vim.fn.system() for older Neovim versions.
 local function run_az_command(cmd)
-	local result = vim.fn.system(cmd .. " 2>&1")
-	if vim.v.shell_error ~= 0 then
-		return nil, result
+	if vim.system then
+		local proc = vim.system(vim.split(cmd, " "), { text = true }):wait()
+		if proc.code ~= 0 then
+			local err = (proc.stderr ~= "" and proc.stderr) or proc.stdout
+			return nil, err
+		end
+		return proc.stdout, nil
 	end
-	return result, nil
+
+	local output = vim.fn.system(cmd)
+	if vim.v.shell_error ~= 0 then
+		return nil, output
+	end
+	return output, nil
 end
 
 -- Prompt the user for input, returns nil if cancelled or empty

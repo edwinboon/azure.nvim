@@ -29,8 +29,21 @@ function M.setup(opts)
 		open_file = opts.open_file ~= false, -- default true
 	}
 
-	local keymaps = opts.keymaps or {}
-	local fetch_key = keymaps.fetch_app_settings or "<leader>af"
+	local keymaps = opts.keymaps
+	if keymaps ~= nil and type(keymaps) ~= "table" then
+		vim.notify("azure.nvim: keymaps must be a table", vim.log.levels.ERROR)
+		return
+	end
+	keymaps = keymaps or {}
+
+	local fetch_key = keymaps.fetch_app_settings
+	if fetch_key ~= nil and type(fetch_key) ~= "string" then
+		vim.notify("azure.nvim: keymaps.fetch_app_settings must be a string", vim.log.levels.ERROR)
+		return
+	end
+	if not fetch_key or fetch_key == "" then
+		fetch_key = "<leader>af"
+	end
 
 	vim.keymap.set("n", fetch_key, function()
 		fetch.fetch_app_settings(config)
