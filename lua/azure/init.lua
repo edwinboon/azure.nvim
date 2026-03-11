@@ -1,6 +1,7 @@
 local M = {}
 
 local fetch = require("azure.fetch")
+local push = require("azure.push")
 
 -- Holds the resolved config after setup() is called
 local config = {}
@@ -56,16 +57,33 @@ function M.setup(opts)
 		return
 	end
 	if not fetch_key or fetch_key == "" then
-		fetch_key = "<leader>af"
+		fetch_key = "<leader>azf"
+	end
+
+	local push_key = keymaps.push_app_settings
+	if push_key ~= nil and type(push_key) ~= "string" then
+		vim.notify("azure.nvim: keymaps.push_app_settings must be a string", vim.log.levels.ERROR)
+		return
+	end
+	if not push_key or push_key == "" then
+		push_key = "<leader>azp"
 	end
 
 	vim.keymap.set("n", fetch_key, function()
 		fetch.fetch_app_settings(config)
 	end, { noremap = true, silent = true, desc = "Azure: fetch Function App settings" })
 
+	vim.keymap.set("n", push_key, function()
+		push.push_app_settings(config)
+	end, { noremap = true, silent = true, desc = "Azure: push Function App settings" })
+
 	vim.api.nvim_create_user_command("AzFetchAppSettings", function()
 		fetch.fetch_app_settings(config)
 	end, { force = true, desc = "Fetch Azure Function App settings" })
+
+	vim.api.nvim_create_user_command("AzPushAppSettings", function()
+		push.push_app_settings(config)
+	end, { force = true, desc = "Push local settings to Azure Function App" })
 end
 
 return M

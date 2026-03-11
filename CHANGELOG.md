@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-03-11
+
+### Added
+
+- `swap` option in `diff.show()` to reverse before/after display and highlights for fetch-style diffs
+
+### Fixed
+
+- Fetch diff now correctly shows existing value as "before" and new Azure value as "after" using `swap = true`
+- Per-entry diff prefixes (`+`/`-`) are now swapped when `swap = true` to match section semantics
+- `existing_data.Values` is now validated to be a table (not just truthy) before use to prevent `pairs()` errors on malformed JSON
+
+## [0.5.0] - 2026-03-10
+
+### Added
+
+- Push functionality: push new and changed settings from `local.settings.json` to Azure via `AzPushAppSettings` / `<leader>azp`
+- Diff view: shows a colour-coded split before fetch and push operations with added, changed, unchanged and Azure-only settings
+- New `lua/azure/diff.lua` module with `compute()` and `show()` helpers
+- New `lua/azure/push.lua` module with full push flow
+- New default keybindings: `<leader>azf` (fetch) and `<leader>azp` (push)
+- New user command: `:AzPushAppSettings`
+
+### Changed
+
+- Fetch now shows a diff against the existing `local.settings.json` before overwriting, instead of a plain overwrite confirmation
+- Default fetch keybinding changed from `<leader>af` to `<leader>azf`
+
 ## [0.4.0] - 2026-03-10
 
 ### Added
