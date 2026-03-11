@@ -6,7 +6,12 @@ local diff = require("azure.diff")
 
 -- Read and parse local.settings.json, returns the Values table or nil on error
 local function load_local_settings(config)
-	local output_dir = vim.fn.expand(config.output_path or vim.fn.getcwd())
+	local uv = vim.uv or vim.loop
+	local buf_dir = vim.fn.expand("%:p:h")
+	if buf_dir == "" or not uv.fs_stat(buf_dir) then
+		buf_dir = vim.fn.getcwd()
+	end
+	local output_dir = vim.fn.expand(config.output_path or buf_dir)
 	local path = output_dir .. "/local.settings.json"
 
 	local uv = vim.uv or vim.loop

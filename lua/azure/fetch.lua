@@ -113,7 +113,12 @@ local function do_fetch(config, app_name, resource_group)
 
 	local local_settings = build_local_settings(settings)
 
-	local output_dir = vim.fn.expand(config.output_path or vim.fn.getcwd())
+	local uv = vim.uv or vim.loop
+	local buf_dir = vim.fn.expand("%:p:h")
+	if buf_dir == "" or not uv.fs_stat(buf_dir) then
+		buf_dir = vim.fn.getcwd()
+	end
+	local output_dir = vim.fn.expand(config.output_path or buf_dir)
 	local output_file = output_dir .. "/local.settings.json"
 
 	local function save_and_open()
@@ -126,7 +131,6 @@ local function do_fetch(config, app_name, resource_group)
 		end
 	end
 
-	local uv = vim.uv or vim.loop
 	if uv.fs_stat(output_file) then
 		-- Try to load existing file for diff
 		local existing_values = nil
