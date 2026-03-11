@@ -78,7 +78,7 @@ function M.show(diff_result, title, opts)
 	section(
 		labels.added,
 		vim.tbl_keys(diff_result.added),
-		function(k) return "   + " .. k .. " = " .. tostring(diff_result.added[k]) end,
+		function(k) return "   " .. (swap and "-" or "+") .. " " .. k .. " = " .. tostring(diff_result.added[k]) end,
 		swap and "DiffDelete" or "DiffAdd"
 	)
 
@@ -106,7 +106,7 @@ function M.show(diff_result, title, opts)
 	section(
 		labels.azure_only,
 		vim.tbl_keys(diff_result.azure_only),
-		function(k) return "   - " .. k end,
+		function(k) return "   " .. (swap and "+" or "-") .. " " .. k end,
 		swap and "DiffAdd" or "DiffDelete"
 	)
 

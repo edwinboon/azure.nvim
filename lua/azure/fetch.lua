@@ -140,7 +140,7 @@ local function do_fetch(config, app_name, resource_group)
 			local content = existing_file:read("*a")
 			existing_file:close()
 			local ok, existing_data = pcall(vim.fn.json_decode, content)
-			if ok and existing_data and existing_data.Values then
+			if ok and type(existing_data) == "table" and type(existing_data.Values) == "table" then
 				existing_values = existing_data.Values
 			else
 				vim.notify(

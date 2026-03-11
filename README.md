@@ -32,7 +32,7 @@ A Neovim plugin to manage Azure Function App settings directly from your editor 
 require("lazy").setup({
     {
         "edwinboon/azure.nvim",
-        version = "v0.5.0",
+        version = "v1.0.0",
         config = function()
             require("azure").setup()
         end,
@@ -45,7 +45,7 @@ require("lazy").setup({
 ```lua
 use {
     "edwinboon/azure.nvim",
-    tag = "v0.5.0",
+    tag = "v1.0.0",
     config = function()
         require("azure").setup()
     end,

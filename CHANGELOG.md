@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-03-11
+
+### Added
+
+- `swap` option in `diff.show()` to reverse before/after display and highlights for fetch-style diffs
+
+### Fixed
+
+- Fetch diff now correctly shows existing value as "before" and new Azure value as "after" using `swap = true`
+- Per-entry diff prefixes (`+`/`-`) are now swapped when `swap = true` to match section semantics
+- `existing_data.Values` is now validated to be a table (not just truthy) before use to prevent `pairs()` errors on malformed JSON
+
 ## [0.5.0] - 2026-03-10
 
 ### Added
