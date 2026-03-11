@@ -58,7 +58,7 @@ use {
 
 ### Fetch settings
 
-Press `<leader>azf` or run `:AzFetchAppSettings`.
+Run `:AzFetchAppSettings` or use your configured keymap.
 
 1. Select your Resource Group from a dropdown.
 2. Select the Function App from a dropdown (filtered by resource group).
@@ -67,7 +67,7 @@ Press `<leader>azf` or run `:AzFetchAppSettings`.
 
 ### Push settings
 
-Press `<leader>azp` or run `:AzPushAppSettings`.
+Run `:AzPushAppSettings` or use your configured keymap.
 
 1. Select your Resource Group and Function App.
 2. A diff view opens showing new and changed settings that will be pushed.
@@ -89,10 +89,12 @@ Press `<leader>azp` or run `:AzPushAppSettings`.
 
 ### Keymaps Table
 
-| Key                  | Default        | Description                                         |
-| -------------------- | -------------- | --------------------------------------------------- |
-| `fetch_app_settings` | `<leader>azf`  | Fetch Function App settings and save locally.       |
-| `push_app_settings`  | `<leader>azp`  | Push new/changed local settings to Azure.           |
+No keymaps are set by default — the plugin relies on the user commands `:AzFetchAppSettings` and `:AzPushAppSettings`. Set your own bindings via the `keymaps` option:
+
+| Key                  | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `fetch_app_settings` | Fetch Function App settings and save locally.       |
+| `push_app_settings`  | Push new/changed local settings to Azure.           |
 
 ---
 
@@ -119,7 +121,7 @@ Minimal setup (uses all defaults):
 require("azure").setup()
 ```
 
-Full configuration:
+With keymaps and all options:
 
 ```lua
 require("azure").setup({
@@ -128,8 +130,8 @@ require("azure").setup({
     output_path = "/path/to/project",
     open_file = true,
     keymaps = {
-        fetch_app_settings = "<leader>azf",
-        push_app_settings  = "<leader>azp",
+        fetch_app_settings = "<leader>Af",
+        push_app_settings  = "<leader>Ap",
     },
 })
 ```

@@ -56,26 +56,24 @@ function M.setup(opts)
 		vim.notify("azure.nvim: keymaps.fetch_app_settings must be a string", vim.log.levels.ERROR)
 		return
 	end
-	if not fetch_key or fetch_key == "" then
-		fetch_key = "<leader>azf"
-	end
 
 	local push_key = keymaps.push_app_settings
 	if push_key ~= nil and type(push_key) ~= "string" then
 		vim.notify("azure.nvim: keymaps.push_app_settings must be a string", vim.log.levels.ERROR)
 		return
 	end
-	if not push_key or push_key == "" then
-		push_key = "<leader>azp"
+
+	if fetch_key and fetch_key ~= "" then
+		vim.keymap.set("n", fetch_key, function()
+			fetch.fetch_app_settings(config)
+		end, { noremap = true, silent = true, desc = "Azure: fetch Function App settings" })
 	end
 
-	vim.keymap.set("n", fetch_key, function()
-		fetch.fetch_app_settings(config)
-	end, { noremap = true, silent = true, desc = "Azure: fetch Function App settings" })
-
-	vim.keymap.set("n", push_key, function()
-		push.push_app_settings(config)
-	end, { noremap = true, silent = true, desc = "Azure: push Function App settings" })
+	if push_key and push_key ~= "" then
+		vim.keymap.set("n", push_key, function()
+			push.push_app_settings(config)
+		end, { noremap = true, silent = true, desc = "Azure: push Function App settings" })
+	end
 
 	vim.api.nvim_create_user_command("AzFetchAppSettings", function()
 		fetch.fetch_app_settings(config)
