@@ -131,7 +131,6 @@ local function do_fetch(config, app_name, resource_group)
 		end
 	end
 
-	local uv = vim.uv or vim.loop
 	if uv.fs_stat(output_file) then
 		-- Try to load existing file for diff
 		local existing_values = nil
