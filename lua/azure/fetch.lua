@@ -113,7 +113,8 @@ local function do_fetch(config, app_name, resource_group)
 
 	local local_settings = build_local_settings(settings)
 
-	local output_dir = vim.fn.expand(config.output_path or vim.fn.getcwd())
+	local buf_dir = vim.fn.expand("%:p:h")
+	local output_dir = vim.fn.expand(config.output_path or (buf_dir ~= "" and buf_dir or vim.fn.getcwd()))
 	local output_file = output_dir .. "/local.settings.json"
 
 	local function save_and_open()
