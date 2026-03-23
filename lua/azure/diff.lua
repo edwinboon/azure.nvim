@@ -139,8 +139,10 @@ function M.show_confirm(diff_result, title, prompt, on_confirm, opts)
 	local ui = vim.api.nvim_list_uis()[1]
 	local ui_width  = ui and ui.width  or 80
 	local ui_height = ui and ui.height or 30
-	local width  = math.max(20, math.min(80, ui_width - 4))
-	local height = math.max(3,  math.min(#lines + 2, math.floor(ui_height * 0.8)))
+	local preferred_width  = math.min(80, ui_width - 4)
+	local preferred_height = math.min(#lines + 2, math.floor(ui_height * 0.8))
+	local width  = math.min(ui_width,  math.max(20, preferred_width))
+	local height = math.min(ui_height, math.max(3,  preferred_height))
 	local row = math.max(0, math.floor((ui_height - height) / 2))
 	local col = math.max(0, math.floor((ui_width  - width)  / 2))
 
