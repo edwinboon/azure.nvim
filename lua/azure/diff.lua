@@ -33,10 +33,9 @@ function M.compute(local_values, azure_values)
 	return result
 end
 
--- Show diff in a scratch buffer split.
--- opts.labels overrides section headers for context-specific messaging.
--- Returns buf, win so callers can close it programmatically.
-function M.show(diff_result, title, opts)
+-- Shared helper: build lines + highlights from a diff result.
+-- Returns { lines, highlights } where highlights = { { line_index, hl_group }, ... }
+local function build_lines(diff_result, title, opts)
 	opts = opts or {}
 	local labels = opts.labels or {
 		added      = " + New (local only — will be pushed)",
@@ -51,7 +50,7 @@ function M.show(diff_result, title, opts)
 	local swap = opts.swap or false
 
 	local lines = {}
-	local highlights = {} -- { line_index, hl_group }
+	local highlights = {}
 
 	local function add(line, hl_group)
 		table.insert(lines, line)
@@ -109,6 +108,86 @@ function M.show(diff_result, title, opts)
 		function(k) return "   " .. (swap and "+" or "-") .. " " .. k end,
 		swap and "DiffAdd" or "DiffDelete"
 	)
+
+	return lines, highlights
+end
+
+-- Show diff in a floating window with built-in confirm prompt.
+-- on_confirm(true) = user chose yes, on_confirm(false) = cancelled/no.
+-- Closing the window via any means (keymaps or :close/<C-w>c) always calls on_confirm(false).
+function M.show_confirm(diff_result, title, prompt, on_confirm, opts)
+	local lines, highlights = build_lines(diff_result, title, opts)
+
+	-- Add confirmation footer
+	table.insert(lines, "")
+	table.insert(lines, " " .. (prompt or "Confirm?"))
+	local footer_prompt_line = #lines - 1
+	table.insert(lines, "  [y] Yes   [n] No")
+	local footer_keys_line = #lines - 1
+
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.bo[buf].modifiable = false
+	vim.bo[buf].bufhidden = "wipe"
+
+	for _, hl in ipairs(highlights) do
+		vim.api.nvim_buf_add_highlight(buf, -1, hl[2], hl[1], 0, -1)
+	end
+	vim.api.nvim_buf_add_highlight(buf, -1, "Title",   footer_prompt_line, 0, -1)
+	vim.api.nvim_buf_add_highlight(buf, -1, "Comment", footer_keys_line,   0, -1)
+
+	local ui = vim.api.nvim_list_uis()[1]
+	local ui_width  = ui and ui.width  or 80
+	local ui_height = ui and ui.height or 30
+	local preferred_width  = math.min(80, ui_width - 4)
+	local preferred_height = math.min(#lines + 2, math.floor(ui_height * 0.8))
+	local width  = math.min(ui_width,  math.max(20, preferred_width))
+	local height = math.min(ui_height, math.max(3,  preferred_height))
+	local row = math.max(0, math.floor((ui_height - height) / 2))
+	local col = math.max(0, math.floor((ui_width  - width)  / 2))
+
+	local win = vim.api.nvim_open_win(buf, true, {
+		relative  = "editor",
+		width     = width,
+		height    = height,
+		row       = row,
+		col       = col,
+		style     = "minimal",
+		border    = "rounded",
+		noautocmd = true,
+	})
+
+	-- Guard to ensure on_confirm is called at most once
+	local called = false
+	local function confirm(yes)
+		if called then return end
+		called = true
+		if vim.api.nvim_win_is_valid(win) then
+			vim.api.nvim_win_close(win, true)
+		end
+		on_confirm(yes)
+	end
+
+	vim.keymap.set("n", "y",     function() confirm(true)  end, { buffer = buf, nowait = true })
+	vim.keymap.set("n", "n",     function() confirm(false) end, { buffer = buf, nowait = true })
+	vim.keymap.set("n", "q",     function() confirm(false) end, { buffer = buf, nowait = true })
+	vim.keymap.set("n", "<Esc>", function() confirm(false) end, { buffer = buf, nowait = true })
+
+	-- Catch window closed via :close, <C-w>c, or any other means
+	vim.api.nvim_create_autocmd("BufWipeout", {
+		buffer = buf,
+		once   = true,
+		callback = function() confirm(false) end,
+	})
+
+	return buf, win
+end
+
+-- Show diff in a scratch buffer split.
+-- opts.labels overrides section headers for context-specific messaging.
+-- Returns buf, win so callers can close it programmatically.
+function M.show(diff_result, title, opts)
+	local lines, highlights = build_lines(diff_result, title, opts)
 
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)

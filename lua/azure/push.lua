@@ -74,41 +74,40 @@ local function do_push(config, app_name, resource_group)
 		return
 	end
 
-	local _, win = diff.show(d, "Push diff: " .. app_name)
+	diff.show_confirm(
+		d,
+		"Push diff: " .. app_name,
+		"Push " .. vim.tbl_count(to_push) .. " new/changed setting(s) to " .. app_name .. "?",
+		function(confirmed)
+			if not confirmed then
+				vim.notify("Push cancelled.", vim.log.levels.WARN)
+				return
+			end
 
-	vim.ui.select({ "Yes", "No" }, {
-		prompt = "Push " .. vim.tbl_count(to_push) .. " new/changed setting(s) to " .. app_name .. "?",
-	}, function(choice)
-		diff.close(win)
+			vim.notify("Pushing " .. vim.tbl_count(to_push) .. " setting(s) to " .. app_name .. "...", vim.log.levels.INFO)
 
-		if choice ~= "Yes" then
-			vim.notify("Push cancelled.", vim.log.levels.WARN)
-			return
+			local args = {
+				"az", "functionapp", "config", "appsettings", "set",
+				"--name", app_name,
+				"--resource-group", resource_group,
+				"--settings",
+			}
+			for key, value in pairs(to_push) do
+				table.insert(args, key .. "=" .. tostring(value))
+			end
+
+			local result, err = az.run_az_command(args)
+			if not result then
+				vim.notify("Failed to push settings:\n" .. err, vim.log.levels.ERROR)
+				return
+			end
+
+			vim.notify(
+				"Successfully pushed " .. vim.tbl_count(to_push) .. " setting(s) to " .. app_name .. ".",
+				vim.log.levels.INFO
+			)
 		end
-
-		vim.notify("Pushing " .. vim.tbl_count(to_push) .. " setting(s) to " .. app_name .. "...", vim.log.levels.INFO)
-
-		local args = {
-			"az", "functionapp", "config", "appsettings", "set",
-			"--name", app_name,
-			"--resource-group", resource_group,
-			"--settings",
-		}
-		for key, value in pairs(to_push) do
-			table.insert(args, key .. "=" .. tostring(value))
-		end
-
-		local result, err = az.run_az_command(args)
-		if not result then
-			vim.notify("Failed to push settings:\n" .. err, vim.log.levels.ERROR)
-			return
-		end
-
-		vim.notify(
-			"Successfully pushed " .. vim.tbl_count(to_push) .. " setting(s) to " .. app_name .. ".",
-			vim.log.levels.INFO
-		)
-	end)
+	)
 end
 
 -- Main entry point: select resource group and function app, then push

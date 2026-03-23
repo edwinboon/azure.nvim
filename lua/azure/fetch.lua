@@ -160,32 +160,33 @@ local function do_fetch(config, app_name, resource_group)
 			-- azure_only = in new Azure, not in existing file  → will be added to local
 			-- swap = true: show existing (local_val) as "before", new Azure (azure_val) as "after"
 			local d = diff.compute(existing_values, local_settings.Values)
-			local _, win = diff.show(d, "Fetch diff: " .. app_name, {
-				labels = {
-					added      = " - Will be removed from local file",
-					changed    = " ~ Will be updated in local file",
-					unchanged  = " = Unchanged",
-					azure_only = " + Will be added to local file",
-				},
-				changed_labels = {
-					before = "existing",
-					after  = "new from Azure",
-				},
-				swap = true,
-			})
-
-			vim.ui.select({ "Yes", "No" }, {
-				prompt = "Apply these changes to " .. output_file .. "?",
-			}, function(choice)
-				diff.close(win)
-				if choice == "Yes" then
-					save_and_open()
-				else
-					vim.notify("Cancelled: file not updated.", vim.log.levels.WARN)
-				end
-			end)
+			diff.show_confirm(
+				d,
+				"Fetch diff: " .. app_name,
+				"Apply these changes to " .. output_file .. "?",
+				function(confirmed)
+					if confirmed then
+						save_and_open()
+					else
+						vim.notify("Cancelled: file not updated.", vim.log.levels.WARN)
+					end
+				end,
+				{
+					labels = {
+						added      = " - Will be removed from local file",
+						changed    = " ~ Will be updated in local file",
+						unchanged  = " = Unchanged",
+						azure_only = " + Will be added to local file",
+					},
+					changed_labels = {
+						before = "existing",
+						after  = "new from Azure",
+					},
+					swap = true,
+				}
+			)
 		else
-			-- Fallback: simple overwrite confirmation
+			-- Fallback: simple overwrite confirmation (no diff available)
 			vim.ui.select({ "Yes", "No" }, {
 				prompt = output_file .. " already exists. Overwrite?",
 			}, function(choice)
